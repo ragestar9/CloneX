@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+      Zenith OS palette.
+      Obsidian base tuned for OLED, neon cyan as "signal", electric purple as
+      "processing". See MAXCLONER.md for the design system this comes from.
+    -->
+
+    <!-- Base surfaces -->
+    <color name="zenith_obsidian">#0A0C10</color>
+    <color name="zenith_surface">#111318</color>
+    <color name="zenith_surface_container_lowest">#0C0E12</color>
+    <color name="zenith_surface_container_low">#1A1C20</color>
+    <color name="zenith_surface_container">#1E2024</color>
+    <color name="zenith_surface_container_high">#282A2E</color>
+    <color name="zenith_surface_container_highest">#333539</color>
+
+    <!-- Glass layers: 60% opacity over the obsidian base -->
+    <color name="zenith_glass">#99161B22</color>
+    <color name="zenith_glass_strong">#CC161B22</color>
+
+    <!-- Signal (cyan) -->
+    <color name="zenith_cyan">#00F2FF</color>
+    <color name="zenith_cyan_dim">#00DBE7</color>
+    <color name="zenith_cyan_bright">#74F5FF</color>
+    <color name="zenith_on_cyan">#00363A</color>
+    <color name="zenith_cyan_glow">#3300F2FF</color>
+    <color name="zenith_cyan_rim">#5900F2FF</color>
+    <color name="zenith_cyan_grid">#0D00F2FF</color>
+
+    <!-- Processing (purple) -->
+    <color name="zenith_purple">#8B5CF6</color>
+    <color name="zenith_purple_light">#D0BCFF</color>
+    <color name="zenith_on_purple">#3C0091</color>
+    <color name="zenith_purple_glow">#338B5CF6</color>
+
+    <!-- Text -->
+    <color name="zenith_on_surface">#E2E2E8</color>
+    <color name="zenith_on_surface_variant">#B9CACB</color>
+    <color name="zenith_outline">#849495</color>
+    <color name="zenith_outline_variant">#3A494B</color>
+
+    <!-- Alert -->
+    <color name="zenith_danger">#FF2D55</color>
+    <color name="zenith_on_danger">#690005</color>
+
+    <!--
+      Legacy aliases. Layouts inherited from upstream still reference these
+      names; remapping them onto the Zenith palette avoids touching every
+      layout at once.
+    -->
+    <color name="primary">@color/zenith_surface</color>
+    <color name="primary_dark">@color/zenith_obsidian</color>
+    <color name="primary_light">@color/zenith_surface_container_high</color>
+    <color name="accent">@color/zenith_cyan</color>
+    <color name="primary_text">@color/zenith_on_surface</color>
+    <color name="secondary_text">@color/zenith_on_surface_variant</color>
+    <color name="white">#FFFFFFFF</color>
+
+</resources>

@@ -1,0 +1,57 @@
+MaxCloner
+Copyright 2026 The MaxCloner project
+
+This product includes software developed by the NewBlackbox project
+(https://github.com/ALEX5402/NewBlackbox), which is itself derived from the
+BlackBox virtual engine project. That work is licensed under the Apache
+License, Version 2.0.
+
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+---------------------------------------------------------------------------
+MODIFICATIONS
+---------------------------------------------------------------------------
+
+In accordance with Section 4(b) of the Apache License 2.0, the following
+files have been modified by the MaxCloner project relative to upstream:
+
+  Bcore/src/main/cpp/Utils/AntiDetection.cpp
+      Added the rebranded host package data directory to the list of paths
+      hidden from sandboxed applications.
+
+  Bcore/src/main/java/top/niunaijun/blackbox/core/env/BEnvironment.java
+      Added per-package split APK storage directory and lookup helpers.
+
+  Bcore/src/main/java/top/niunaijun/blackbox/core/system/pm/installer/CopyExecutor.java
+      Added split APK (Android App Bundle) installation, and native library
+      extraction from split APKs in addition to the base APK.
+
+  Bcore/src/main/java/top/niunaijun/blackbox/core/system/pm/PackageManagerCompat.java
+      Populates ApplicationInfo.splitSourceDirs / splitPublicSourceDirs for
+      cloned bundle applications.
+
+  Bcore/src/main/java/top/niunaijun/blackbox/app/BActivityThread.java
+      Class loader now includes split APKs on the dex path and is given an
+      explicit native library search path.
+
+  Bcore/src/main/java/top/niunaijun/blackbox/app/configuration/ClientConfiguration.java
+      getLogSenderChatId() now returns null instead of a hardcoded upstream
+      Telegram chat id, disabling automatic upload of device logs to a
+      third party.
+
+  app/src/main/res/xml/setting.xml
+      Removed the "Send Logs" preference, which uploaded logs to the
+      upstream project rather than to the operator of this build.
+
+  app/build.gradle
+      Application id, release signing configuration, APK output naming.
+
+  app/src/main/res/values/strings.xml
+      Application display name.
+
+  gradle.properties, gradle/wrapper/gradle-wrapper.properties
+      Build memory, network timeout and IPv4 stack settings.
+
+Full technical rationale for each change is documented in MAXCLONER.md.

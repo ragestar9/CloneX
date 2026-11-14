@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Transparent so the animated background runs behind the title, per the
+  glassmorphism brief. Title uses Space Grotesk, subtitle (the clone space
+  name) uses the mono label treatment.
+-->
+<com.google.android.material.appbar.MaterialToolbar xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:theme="@style/ToolBarColorStyle"
+        app:subtitleTextAppearance="@style/Zenith.LabelMono.Cyan"
+        app:subtitleTextColor="@color/zenith_cyan"
+        app:title="@string/app_name"
+        app:titleTextAppearance="@style/Zenith.Toolbar.Title"
+        app:titleTextColor="@color/zenith_on_surface">
+
+</com.google.android.material.appbar.MaterialToolbar>
