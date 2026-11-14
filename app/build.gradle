@@ -61,7 +61,9 @@ android {
         compose true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
+        // 1.5.13 pairs with the engine's pinned Kotlin 1.9.23.
+        // 1.5.14 needs Kotlin 1.9.24 and breaks the build.
+        kotlinCompilerExtensionVersion = "1.5.13"
     }
     kotlinOptions {
         jvmTarget = '21'
