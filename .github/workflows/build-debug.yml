@@ -22,11 +22,13 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
+      # The runner image already ships an Android SDK (ANDROID_HOME is set).
+      # setup-android@v3 is avoided: it tries to install the obsolete
+      # `tools` package and fails. Install only the missing pieces.
       - name: Install SDK packages
         run: |
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+          yes | sdkmanager --licenses || true
           sdkmanager --install \
             "platforms;android-35" \
             "build-tools;35.0.0" \
