@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.sp
  * One launcher-style cell: app icon with a green number badge, name below.
  * Presses shrink to 0.95 with a spring, the way a launcher icon should feel.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CloneCell(
     bitmap: Bitmap?,
