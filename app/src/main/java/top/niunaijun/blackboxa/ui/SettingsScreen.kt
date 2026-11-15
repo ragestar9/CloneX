@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -17,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -24,9 +27,13 @@ fun SettingsScreen(viewModel: CloneViewModel) {
     val clones by viewModel.clones.collectAsState()
     val gmsSpaces by viewModel.gmsSpaces.collectAsState()
     val gmsInstalling by viewModel.gmsInstalling.collectAsState()
+    val crashReport by viewModel.crashReport.collectAsState()
+    val collectingCrashReport by viewModel.collectingCrashReport.collectAsState()
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
         Text(
@@ -116,6 +123,35 @@ fun SettingsScreen(viewModel: CloneViewModel) {
         }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
+            text = "Crash report",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "If a clone crashes, come back here right after and tap the button. " +
+                "It copies the exact reason from the phone's log — paste it to me " +
+                "and I'll fix that exact crash.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        if (collectingCrashReport) {
+            CircularProgressIndicator()
+        } else {
+            Button(onClick = { viewModel.copyCrashReport(context) }) {
+                Text("Copy crash report")
+            }
+        }
+        if (crashReport != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = crashReport!!.lineSequence().take(8).joinToString("\n"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
             text = "Good to know",
             style = MaterialTheme.typography.titleMedium
         )
@@ -129,7 +165,7 @@ fun SettingsScreen(viewModel: CloneViewModel) {
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "CloneX 4.1.1  •  Built on the open-source NewBlackbox engine (Apache 2.0)",
+            text = "CloneX 4.1.2  •  Built on the open-source NewBlackbox engine (Apache 2.0)",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
