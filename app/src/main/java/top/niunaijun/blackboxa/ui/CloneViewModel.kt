@@ -42,6 +42,13 @@ class CloneViewModel(application: Application) : AndroidViewModel(application) {
     private val _gmsInstalling = MutableStateFlow<Set<Int>>(emptySet())
     val gmsInstalling: StateFlow<Set<Int>> = _gmsInstalling
 
+    /** Last collected crash report text, if any. */
+    private val _crashReport = MutableStateFlow<String?>(null)
+    val crashReport: StateFlow<String?> = _crashReport
+
+    private val _collectingCrashReport = MutableStateFlow(false)
+    val collectingCrashReport: StateFlow<Boolean> = _collectingCrashReport
+
     init {
         refresh()
     }
@@ -113,6 +120,22 @@ class CloneViewModel(application: Application) : AndroidViewModel(application) {
                 "Google Play Services installed — open your clones again"
             } else {
                 "Could not install Google Play Services: ${result.exceptionOrNull()?.message}"
+            }
+        }
+    }
+
+    /** Read the last clone crash from the system log and copy it. */
+    fun copyCrashReport(context: Context) {
+        if (_collectingCrashReport.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _collectingCrashReport.value = true
+            val report = CrashLog.collect(context.applicationContext)
+            _crashReport.value = report
+            _collectingCrashReport.value = false
+            _message.value = if (CrashLog.copyToClipboard(context, report)) {
+                "Crash report copied — paste it to Muse"
+            } else {
+                "Could not copy the crash report"
             }
         }
     }
