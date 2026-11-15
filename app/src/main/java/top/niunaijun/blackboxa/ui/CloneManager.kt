@@ -47,12 +47,16 @@ object CloneManager {
     /** All launchable apps on the device, except CloneX itself. */
     fun loadDeviceApps(context: Context): List<DeviceApp> {
         val pm = context.packageManager
-        val core = BlackBoxCore.get()
-        val users = try {
-            core.users
+        // Clone counts come from loadClones (getInstalledApplications), NOT from
+        // isInstalled(): the engine's isInstalled() falls back to the SYSTEM
+        // package manager when its service is unhealthy, which reports every
+        // installed app as "cloned" and breaks the counts.
+        val clones = try {
+            loadClones(context)
         } catch (e: Exception) {
             emptyList()
         }
+        val counts = clones.groupingBy { it.packageName }.eachCount()
         val hostPkg = context.packageName
         return try {
             pm.getInstalledApplications(PackageManager.GET_META_DATA)
@@ -66,14 +70,7 @@ object CloneManager {
                     } catch (e: Exception) {
                         info.packageName
                     }
-                    val count = users.count { user ->
-                        try {
-                            core.isInstalled(info.packageName, user.id)
-                        } catch (e: Exception) {
-                            false
-                        }
-                    }
-                    DeviceApp(info.packageName, label, count)
+                    DeviceApp(info.packageName, label, counts[info.packageName] ?: 0)
                 }
                 .sortedBy { it.appName.lowercase() }
         } catch (e: Exception) {
@@ -117,40 +114,52 @@ object CloneManager {
         return out.sortedWith(compareBy({ it.appName.lowercase() }, { it.number }))
     }
 
-    /** Clone [packageName] into the first free virtual space. */
+    /**
+     * Clone [packageName] into the first free virtual space.
+     *
+     * The free slot is found from loadClones(), NOT from isInstalled():
+     * the engine's isInstalled() falls back to the SYSTEM package manager
+     * when its service is unhealthy, which reports every app installed on
+     * the device as already cloned in every space — so the old scan saw
+     * all 50 slots as taken and failed with "No free clone slot" on the
+     * very first clone. getInstalledApplications() has no such fallback.
+     */
     fun cloneApp(context: Context, packageName: String): Result<CloneEntry> {
         val core = BlackBoxCore.get()
-        val existing = try {
-            loadClones(context).count { it.packageName == packageName }
+        val clones = try {
+            loadClones(context)
         } catch (e: Exception) {
-            0
+            emptyList()
         }
+        val usedIds = clones.filter { it.packageName == packageName }.map { it.userId }.toSet()
+        val existing = clones.count { it.packageName == packageName }
         for (userId in 0..MAX_USER_ID) {
-            val installed = try {
-                core.isInstalled(packageName, userId)
-            } catch (e: Exception) {
-                false
-            }
-            if (!installed) {
-                return try {
-                    val result = core.installPackageAsUser(packageName, userId)
-                    if (result.success) {
-                        val label = try {
-                            context.packageManager
-                                .getApplicationLabel(
-                                    context.packageManager.getApplicationInfo(packageName, 0)
-                                ).toString()
-                        } catch (e: Exception) {
-                            packageName
-                        }
-                        Result.success(CloneEntry(packageName, label, userId, existing + 1))
-                    } else {
-                        Result.failure(IllegalStateException(result.msg ?: "Install failed"))
-                    }
+            if (userId in usedIds) continue
+            return try {
+                // Make sure the virtual space exists first; install creates
+                // it implicitly, but being explicit avoids depending on that.
+                try {
+                    core.createUser(userId)
                 } catch (e: Exception) {
-                    Log.e(TAG, "cloneApp failed: ${e.message}")
-                    Result.failure(e)
+                    Log.w(TAG, "createUser $userId: ${e.message}")
                 }
+                val result = core.installPackageAsUser(packageName, userId)
+                if (result.success) {
+                    val label = try {
+                        context.packageManager
+                            .getApplicationLabel(
+                                context.packageManager.getApplicationInfo(packageName, 0)
+                            ).toString()
+                    } catch (e: Exception) {
+                        packageName
+                    }
+                    Result.success(CloneEntry(packageName, label, userId, existing + 1))
+                } else {
+                    Result.failure(IllegalStateException(result.msg ?: "Install failed"))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "cloneApp failed: ${e.message}")
+                Result.failure(e)
             }
         }
         return Result.failure(IllegalStateException("No free clone slot"))
