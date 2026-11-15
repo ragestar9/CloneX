@@ -1111,6 +1111,13 @@ public class BActivityThread extends IBActivityThread.Stub {
     }
 
     @Override
+    public void startService(final Intent proxyIntent) {
+        mH.post(() -> {
+            AppServiceDispatcher.get().onStartCommand(proxyIntent, 0, 0);
+        });
+    }
+
+    @Override
     public void finishActivity(final IBinder token) {
         mH.post(() -> {
             Map<IBinder, Object> activities = BRActivityThread.get(BlackBoxCore.mainThread()).mActivities();
