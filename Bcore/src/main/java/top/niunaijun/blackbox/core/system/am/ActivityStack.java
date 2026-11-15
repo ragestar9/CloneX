@@ -105,6 +105,24 @@ public class ActivityStack {
         Log.d(TAG, "startActivityLocked : " + resolveInfo.activityInfo);
         ActivityInfo activityInfo = resolveInfo.activityInfo;
 
+        String resultCaller = null;
+        try {
+            resultCaller = intent.getStringExtra(top.niunaijun.blackbox.proxy.ProxyPendingActivity.EXTRA_RESULT_CALLER);
+        } catch (Throwable ignored) {
+        }
+        if (resultCaller != null) {
+            intent.removeExtra(top.niunaijun.blackbox.proxy.ProxyPendingActivity.EXTRA_RESULT_CALLER);
+            ActivityRecord caller = findResultCallerLocked(userId, ComponentName.unflattenFromString(resultCaller));
+            if (caller != null && resultTo != null) {
+                Log.d(TAG, "forwarding result of " + activityInfo.name + " to " + caller.component);
+                ActivityRecord selfRecord = newActivityRecord(intent, activityInfo, caller.token, userId);
+                Intent shadow = startActivityProcess(userId, intent, activityInfo, selfRecord);
+                shadow.setAction(UUID.randomUUID().toString());
+                shadow.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
+                return realStartActivityLocked(caller.processRecord.appThread, shadow, resolvedType, resultTo, null, -1, flags, options);
+            }
+        }
+
         ActivityRecord sourceRecord = findActivityRecordByToken(userId, resultTo);
         if (sourceRecord == null) {
             resultTo = null;
@@ -138,6 +156,17 @@ public class ActivityStack {
         }
 
         
+        if (taskRecord == null) {
+            ComponentName target = ComponentUtils.toComponentName(activityInfo);
+            synchronized (mLaunchingActivities) {
+                for (ActivityRecord launching : mLaunchingActivities) {
+                    if (!launching.finished && launching.userId == userId && target.equals(launching.component)) {
+                        Slog.w(TAG, "ignoring duplicate launch of " + target);
+                        return 0;
+                    }
+                }
+            }
+        }
         if (taskRecord == null || taskRecord.needNewTask()) {
             return startActivityInNewTaskLocked(userId, intent, activityInfo, resultTo, launchModeFlags);
         }
@@ -385,7 +414,7 @@ public class ActivityStack {
         synchronized (mLaunchingActivities) {
             mLaunchingActivities.add(targetRecord);
             Message obtain = Message.obtain(mHandler, LAUNCH_TIME_OUT, targetRecord);
-            mHandler.sendMessageDelayed(obtain, 2000);
+            mHandler.sendMessageDelayed(obtain, 10000);
         }
         return targetRecord;
     }
@@ -404,6 +433,33 @@ public class ActivityStack {
             }
         }
         return record;
+    }
+
+    /** Top-most activity of the clone running in the proxy process of {@code caller} (ProxyActivity$P<bpid>). */
+    private ActivityRecord findResultCallerLocked(int userId, ComponentName caller) {
+        if (caller == null || !caller.getPackageName().equals(BlackBoxCore.getHostPkg())) return null;
+        String cls = caller.getClassName();
+        int index = cls.lastIndexOf("$P");
+        if (index < 0) return null;
+        int bpid;
+        try {
+            bpid = Integer.parseInt(cls.substring(index + 2));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        synchronized (mTasks) {
+            synchronizeTasks();
+            for (TaskRecord task : mTasks.values()) {
+                if (task.userId != userId) continue;
+                for (int i = task.activities.size() - 1; i >= 0; i--) {
+                    ActivityRecord record = task.activities.get(i);
+                    if (!record.finished && record.processRecord != null && record.processRecord.bpid == bpid) {
+                        return record;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private ActivityRecord findActivityRecordByToken(int userId, IBinder token) {
@@ -549,5 +605,37 @@ public class ActivityStack {
         }
         mTasks.clear();
         mTasks.putAll(newTacks);
+        java.util.Iterator<Map.Entry<Integer, TaskRecord>> it = mTasks.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Integer, TaskRecord> entry = it.next();
+            TaskRecord task = entry.getValue();
+            synchronized (task.activities) {
+                java.util.Iterator<ActivityRecord> records = task.activities.iterator();
+                while (records.hasNext()) {
+                    if (!isProcessAlive(records.next().processRecord)) records.remove();
+                }
+                if (!task.activities.isEmpty()) continue;
+            }
+            it.remove();
+            removeSystemTask(entry.getKey());
+        }
+    }
+
+    private static boolean isProcessAlive(ProcessRecord p) {
+        return p != null && p.bActivityThread != null && p.bActivityThread.asBinder().isBinderAlive();
+    }
+
+    @SuppressWarnings("deprecation")
+    private void removeSystemTask(int taskId) {
+        for (ActivityManager.AppTask task : mAms.getAppTasks()) {
+            try {
+                if (task.getTaskInfo().id == taskId) {
+                    task.finishAndRemoveTask();
+                    Slog.d(TAG, "removed dead task " + taskId);
+                    return;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
     }
 }
