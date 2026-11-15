@@ -165,7 +165,7 @@ fun SettingsScreen(viewModel: CloneViewModel) {
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "CloneX 4.1.3  •  Built on the open-source NewBlackbox engine (Apache 2.0)",
+            text = "CloneX 4.1.4  •  Built on the open-source NewBlackbox engine (Apache 2.0)",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
