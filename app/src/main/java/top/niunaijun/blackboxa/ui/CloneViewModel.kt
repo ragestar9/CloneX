@@ -34,6 +34,14 @@ class CloneViewModel(application: Application) : AndroidViewModel(application) {
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
 
+    /** Clone spaces and whether each one has Google Play Services. */
+    private val _gmsSpaces = MutableStateFlow<List<GmsManager.GmsSpace>>(emptyList())
+    val gmsSpaces: StateFlow<List<GmsManager.GmsSpace>> = _gmsSpaces
+
+    /** User ids currently having Play Services installed. */
+    private val _gmsInstalling = MutableStateFlow<Set<Int>>(emptySet())
+    val gmsInstalling: StateFlow<Set<Int>> = _gmsInstalling
+
     init {
         refresh()
     }
@@ -44,6 +52,7 @@ class CloneViewModel(application: Application) : AndroidViewModel(application) {
             val ctx = getApplication<Application>().applicationContext
             _apps.value = CloneManager.loadDeviceApps(ctx)
             _clones.value = CloneManager.loadClones(ctx)
+            _gmsSpaces.value = GmsManager.loadGmsSpaces(ctx, _clones.value)
             _loading.value = false
         }
     }
@@ -59,7 +68,13 @@ class CloneViewModel(application: Application) : AndroidViewModel(application) {
                 val clone = result.getOrNull()!!
                 _clones.value = CloneManager.loadClones(ctx)
                 _apps.value = CloneManager.loadDeviceApps(ctx)
-                _message.value = "${clone.appName} ${clone.number} is ready"
+                _gmsSpaces.value = GmsManager.loadGmsSpaces(ctx, _clones.value)
+                _message.value = if (GmsManager.hasGms(clone.userId)) {
+                    "${clone.appName} ${clone.number} is ready"
+                } else {
+                    "${clone.appName} ${clone.number} is ready — if it crashes when " +
+                        "opened, install Google Play Services in Settings"
+                }
             } else {
                 _message.value = "Could not clone $appName: ${result.exceptionOrNull()?.message}"
             }
@@ -80,7 +95,25 @@ class CloneViewModel(application: Application) : AndroidViewModel(application) {
             CloneManager.deleteClone(clone.packageName, clone.userId)
             _clones.value = CloneManager.loadClones(ctx)
             _apps.value = CloneManager.loadDeviceApps(ctx)
+            _gmsSpaces.value = GmsManager.loadGmsSpaces(ctx, _clones.value)
             _message.value = "${clone.appName} ${clone.number} deleted"
+        }
+    }
+
+    /** Install Google Play Services into one clone space (takes a while). */
+    fun installGms(userId: Int) {
+        if (_gmsInstalling.value.contains(userId)) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _gmsInstalling.value = _gmsInstalling.value + userId
+            val ctx = getApplication<Application>().applicationContext
+            val result = GmsManager.installGms(ctx, userId)
+            _gmsInstalling.value = _gmsInstalling.value - userId
+            _gmsSpaces.value = GmsManager.loadGmsSpaces(ctx, _clones.value)
+            _message.value = if (result.isSuccess) {
+                "Google Play Services installed — open your clones again"
+            } else {
+                "Could not install Google Play Services: ${result.exceptionOrNull()?.message}"
+            }
         }
     }
 
